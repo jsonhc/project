@@ -1,0 +1,29 @@
+# fdisk /dev/sdb
+
+# Create first primary partition
+n
+p
+1
+w
+
+# 将新的分区，格式化
+mkfs -t ext3 /dev/sdb1 
+
+# set type as linux lvm
+fdisk /dev/sdb  ---->p(打印当前分区系统模式)------->t(修改当前分区系统模式)------->8e（将分区系统模式改为lvm）------>w（保存退出）
+
+partprobe
+
+# extend vg
+vgdisplay
+pvcreate /dev/sdb1
+vgextend vg_name /dev/sdb1
+
+
+# extend lv
+vgdisplay -v
+lvextend -l+288 /dev/cl/root(lv_name绝对路径)
+
+# resize to resize the logical volume
+xfs_growfs /dev/cl/root
+df -h
