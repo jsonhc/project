@@ -1,0 +1,83 @@
+# This is for lvm mount on centos7
+
+# 新增一块磁盘，进行分区
+fdisk /dev/sdb
+n，p，1， ， ，w
+
+# set partition table system 
+fdisk /dev/sdb
+p，t，8e，w
+
+在进行下一步之前，我们说明一下pv、vg、lv的关系。
+
+一个硬盘f分区组成一个pv（物理卷）
+
+一个或者多个pv组成一个vg（卷组）
+
+一个vg可以划分出多个lv（逻辑卷）
+
+#  create pv
+[root@docker ~]# pvcreate /dev/sdb1
+  Physical volume "/dev/sdb1" successfully created.
+  
+# create vg
+[root@docker ~]# vgcreate vg_group /dev/sdb1 
+  Volume group "vg_group" successfully created
+  
+# 查看创建的vg
+vgdisplay
+
+# create lv
+[root@docker ~]# lvcreate -L 9G -n vg_lv vg_group  
+  Logical volume "vg_lv" created.
+  
+# 格式化lv
+[root@docker ~]# mkfs.ext4 /dev/vg_group/vg_lv     (由vg+lv组成)
+mke2fs 1.42.9 (28-Dec-2013)
+Filesystem label=
+OS type: Linux
+Block size=4096 (log=2)
+Fragment size=4096 (log=2)
+Stride=0 blocks, Stripe width=0 blocks
+589824 inodes, 2359296 blocks
+117964 blocks (5.00%) reserved for the super user
+First data block=0
+Maximum filesystem blocks=2151677952
+72 block groups
+32768 blocks per group, 32768 fragments per group
+8192 inodes per group
+Superblock backups stored on blocks: 
+        32768, 98304, 163840, 229376, 294912, 819200, 884736, 1605632
+
+Allocating group tables: done                            
+Writing inode tables: done                            
+Creating journal (32768 blocks): done
+Writing superblocks and filesystem accounting information: done 
+
+ # 编辑/etc/fstab文件，创建磁盘开机自动挂载
+[root@docker ~]# cat /etc/fstab 
+
+#
+# /etc/fstab
+# Created by anaconda on Fri Oct 27 04:48:54 2017
+#
+# Accessible filesystems, by reference, are maintained under '/dev/disk'
+# See man pages fstab(5), findfs(8), mount(8) and/or blkid(8) for more info
+#
+/dev/mapper/cl-root     /                       xfs     defaults        0 0
+UUID=545a1e0f-edaf-48cb-8145-4f65c2e4ba14 /boot                   xfs     defaults        0 0
+/dev/mapper/cl-swap     swap                    swap    defaults        0 0
+/dev/vg_group/vg_lv     /usr/local                      ext4    defaults        0 0
+
+# 重新挂载
+[root@docker ~]# mount -a
+[root@docker ~]# df -h
+Filesystem                  Size  Used Avail Use% Mounted on
+/dev/mapper/cl-root          26G  1.1G   25G   5% /
+devtmpfs                    1.9G     0  1.9G   0% /dev
+tmpfs                       1.9G     0  1.9G   0% /dev/shm
+tmpfs                       1.9G  8.6M  1.9G   1% /run
+tmpfs                       1.9G     0  1.9G   0% /sys/fs/cgroup
+/dev/sda1                  1014M  139M  876M  14% /boot
+tmpfs                       378M     0  378M   0% /run/user/0
+/dev/mapper/vg_group-vg_lv  8.8G   37M  8.3G   1% /usr/local
