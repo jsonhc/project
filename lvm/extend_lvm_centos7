@@ -1,0 +1,137 @@
+# 新增一块磁盘，reboot
+# fdisk /dev/sdb
+使用fdisk /dev/sdb进行分区，按n创建一个新的分区，按P创建主分区，按1，创建第一块分区，选择开始磁道，按照默认模式开始，使用整个硬盘空间。创建好后按w生效退出
+
+# 将新的分区，格式化
+mkfs -t ext3 /dev/sdb1 
+
+# 把分区改为LVM格式
+fdisk /dev/sdb  ---->p(打印当前分区系统模式)------->t(修改当前分区系统模式)------->8e（将分区系统模式改为lvm）------>w（保存退出）
+
+# 执行partprobe ,不用重启机器，使分区表生效。
+partprobe
+
+# vgdisplay，查看系统原有vg信息
+[root@docker ~]# vgdisplay
+  --- Volume group ---
+  VG Name               cl
+  System ID             
+  Format                lvm2
+  Metadata Areas        1
+  Metadata Sequence No  3
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                2
+  Open LV               2
+  Max PV                0
+  Cur PV                1
+  Act PV                1
+  VG Size               <29.00 GiB
+  PE Size               4.00 MiB
+  Total PE              7423
+  Alloc PE / Size       7423 / <29.00 GiB
+  Free  PE / Size       0 / 0   
+  VG UUID               uG9QLY-NQCu-qmso-P1CA-RFyc-w57n-JwHOSH
+  
+  vg cl是系统创建所有的原始vg信息
+  
+  # 将分区/dev/sdb1进行创建pv
+  pvcreate /dev/sdb1
+  [root@docker ~]# pvcreate /dev/sdb1
+WARNING: ext3 signature detected on /dev/sdb1 at offset 1080. Wipe it? [y/n]: y
+  Wiping ext3 signature on /dev/sdb1.
+  Physical volume "/dev/sdb1" successfully created.
+  
+  # pvdisplay，查看pv信息
+  [root@docker ~]# pvdisplay 
+  --- Physical volume ---
+  PV Name               /dev/sda2
+  VG Name               cl
+  PV Size               <29.00 GiB / not usable 3.00 MiB
+  Allocatable           yes (but full)
+  PE Size               4.00 MiB
+  Total PE              7423
+  Free PE               0
+  Allocated PE          7423
+  PV UUID               yZiN1S-k43X-aD5v-rgG3-LaKK-dPEr-1oOuhg
+   
+  "/dev/sdb1" is a new physical volume of "<10.00 GiB"
+  --- NEW Physical volume ---
+  PV Name               /dev/sdb1
+  VG Name               
+  PV Size               <10.00 GiB
+  Allocatable           NO
+  PE Size               0   
+  Total PE              0
+  Free PE               0
+  Allocated PE          0
+  PV UUID               A38JQD-pCp4-Wttn-KpJb-JV94-cWGI-evA5Zg
+  
+  # lvdisplay，查看lv信息
+  [root@docker ~]# lvdisplay 
+  --- Logical volume ---
+  LV Path                /dev/cl/swap
+  LV Name                swap
+  VG Name                cl
+  LV UUID                RO45lX-GOci-jULp-UUT5-65Fc-IgGe-yQ0R93
+  LV Write Access        read/write
+  LV Creation host, time docker, 2017-10-27 16:48:53 +0800
+  LV Status              available
+  # open                 2
+  LV Size                3.00 GiB
+  Current LE             768
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     8192
+  Block device           253:1
+   
+  --- Logical volume ---
+  LV Path                /dev/cl/root
+  LV Name                root
+  VG Name                cl
+  LV UUID                RjNFtQ-EECf-0EKT-cNdG-ZObs-APee-5nYRGw
+  LV Write Access        read/write
+  LV Creation host, time docker, 2017-10-27 16:48:53 +0800
+  LV Status              available
+  # open                 1
+  LV Size                <26.00 GiB
+  Current LE             6655
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     8192
+  Block device           253:0
+  
+  # vg扩容
+  [root@docker ~]# vgextend cl /dev/sdb1 
+  Volume group "cl" successfully extended
+  
+# lv扩容
+  查看当前系统的容量
+  [root@docker ~]# df -h
+Filesystem           Size  Used Avail Use% Mounted on
+/dev/mapper/cl-root   26G  2.2G   24G   9% /
+开始进行lv扩容：
+[root@docker ~]# lvextend -l +100%FREE /dev/cl/root
+  Size of logical volume cl/root changed from <26.00 GiB (6655 extents) to 35.99 GiB (9214 extents).
+  Logical volume cl/root successfully resized.
+或者lvextend -l <total number of extends to catch up> /dev/datalake/volume
+
+# 执行重设大小
+xfs_growfs /dev/cl/root      centos7
+[root@docker ~]# xfs_growfs /dev/cl/root
+meta-data=/dev/mapper/cl-root    isize=512    agcount=4, agsize=1703680 blks
+         =                       sectsz=512   attr=2, projid32bit=1
+         =                       crc=1        finobt=0 spinodes=0
+data     =                       bsize=4096   blocks=6814720, imaxpct=25
+         =                       sunit=0      swidth=0 blks
+naming   =version 2              bsize=4096   ascii-ci=0 ftype=1
+log      =internal               bsize=4096   blocks=3327, version=2
+         =                       sectsz=512   sunit=0 blks, lazy-count=1
+realtime =none                   extsz=4096   blocks=0, rtextents=0
+data blocks changed from 6814720 to 9435136
+[root@docker ~]# df -h
+Filesystem           Size  Used Avail Use% Mounted on
+/dev/mapper/cl-root   36G  2.2G   34G   6% /
