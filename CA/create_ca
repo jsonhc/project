@@ -1,0 +1,7 @@
+自建CA证书：
+1、CA要给别人颁发证书，首先自己得有一个作为根证书，我们得在一切工作之前配置好CA的配置文件
+	给自建的CA证书提供CA配置文件：ca-config.json
+	
+2、创建 CA 证书签名请求：ca-csr.json
+
+3、生成 CA 证书和私钥：ca.pem(CA证书)、ca-key.pem(CA私钥)
