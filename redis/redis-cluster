@@ -1,0 +1,247 @@
+安装redis-cluster：
+1、首先安装redis实例，这里源码编译安装
+	# tar xf redis-4.0.9.tar.gz
+	# cd redis-4.0.9/
+	# make
+出现如下报错：
+	make[3]: gcc: Command not found
+	
+解决：
+	# yum install gcc
+	
+继续执行：
+	# make
+	
+出现如下报错：	
+	zmalloc.h:50:31: fatal error: jemalloc/jemalloc.h: No such file or directory
+
+解决：https://blog.csdn.net/libraryhu/article/details/64920124
+	# make MALLOC=libc（可以解决上面报错）
+
+继续安装	
+	# make PREFIX=/usr/local/redis-cluster install
+
+安装后：
+	# ll /usr/local/redis-cluster/
+	total 4
+	drwxr-xr-x 2 root root 4096 Mar 27 15:13 bin
+
+在redis-cluster下修改bin文件夹为redis1,复制redis.conf配置文件
+	[root@VM_0_11_centos redis-cluster]# mv bin redis1
+	[root@VM_0_11_centos redis-cluster]# ll
+	total 24
+	drwxr-xr-x 2 root root 4096 Mar 27 15:13 redis1
+	drwxr-xr-x 2 root root 4096 Mar 27 15:29 redis2
+	drwxr-xr-x 2 root root 4096 Mar 27 15:30 redis3
+	drwxr-xr-x 2 root root 4096 Mar 27 15:30 redis4
+	drwxr-xr-x 2 root root 4096 Mar 27 15:30 redis5
+	drwxr-xr-x 2 root root 4096 Mar 27 15:30 redis6
+
+	[root@VM_0_11_centos redis-cluster]# cp /root/tools/redis-4.0.9/redis.conf redis1/    # 执行六次
+
+配置各自节点的redis的配置文件redis.conf：
+	daemonize yes    #后台启动
+	port 7001        #修改端口号，从7001到7006
+	cluster-enabled yes    #开启cluster，去掉注释
+	cluster-config-file nodes.conf
+	cluster-node-timeout 15000
+	appendonly yes
+	
+编辑启动所有节点的脚本：
+	[root@VM_0_11_centos redis-cluster]# cat start_all_node_of_redis.sh 
+	#!/bin/bash
+
+	# start redis1 
+	cd /usr/local/redis-cluster/redis1
+	./redis-server redis.conf
+
+	# start redis2
+	cd /usr/local/redis-cluster/redis2
+	./redis-server redis.conf
+
+	# start redis3
+	cd /usr/local/redis-cluster/redis3
+	./redis-server redis.conf
+
+	# start redis4
+	cd /usr/local/redis-cluster/redis4
+	./redis-server redis.conf
+
+	# start redis5
+	cd /usr/local/redis-cluster/redis5
+	./redis-server redis.conf
+
+	# start redis6
+	cd /usr/local/redis-cluster/redis6
+	./redis-server redis.conf
+
+	
+启动6个节点：
+	[root@VM_0_11_centos redis-cluster]# sh start_all_node_of_redis.sh 
+	20294:C 27 Mar 15:47:57.107 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+	20294:C 27 Mar 15:47:57.107 # Redis version=4.0.9, bits=64, commit=00000000, modified=0, pid=20294, just started
+	20294:C 27 Mar 15:47:57.107 # Configuration loaded
+	20296:C 27 Mar 15:47:57.110 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+	20296:C 27 Mar 15:47:57.111 # Redis version=4.0.9, bits=64, commit=00000000, modified=0, pid=20296, just started
+	20296:C 27 Mar 15:47:57.111 # Configuration loaded
+	20298:C 27 Mar 15:47:57.114 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+	20298:C 27 Mar 15:47:57.114 # Redis version=4.0.9, bits=64, commit=00000000, modified=0, pid=20298, just started
+	20298:C 27 Mar 15:47:57.114 # Configuration loaded
+	20300:C 27 Mar 15:47:57.116 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+	20300:C 27 Mar 15:47:57.116 # Redis version=4.0.9, bits=64, commit=00000000, modified=0, pid=20300, just started
+	20300:C 27 Mar 15:47:57.116 # Configuration loaded
+	20302:C 27 Mar 15:47:57.120 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+	20302:C 27 Mar 15:47:57.120 # Redis version=4.0.9, bits=64, commit=00000000, modified=0, pid=20302, just started
+	20302:C 27 Mar 15:47:57.120 # Configuration loaded
+	20304:C 27 Mar 15:47:57.123 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+	20304:C 27 Mar 15:47:57.123 # Redis version=4.0.9, bits=64, commit=00000000, modified=0, pid=20304, just started
+	20304:C 27 Mar 15:47:57.123 # Configuration loaded
+
+	[root@VM_0_11_centos redis-cluster]# netstat -tunlp|grep redis
+	tcp        0      0 127.0.0.1:17003         0.0.0.0:*               LISTEN      20299/./redis-serve 
+	tcp        0      0 127.0.0.1:17004         0.0.0.0:*               LISTEN      20301/./redis-serve 
+	tcp        0      0 127.0.0.1:17005         0.0.0.0:*               LISTEN      20303/./redis-serve 
+	tcp        0      0 127.0.0.1:17006         0.0.0.0:*               LISTEN      20305/./redis-serve 
+	tcp        0      0 127.0.0.1:7001          0.0.0.0:*               LISTEN      20295/./redis-serve 
+	tcp        0      0 127.0.0.1:7002          0.0.0.0:*               LISTEN      20297/./redis-serve 
+	tcp        0      0 127.0.0.1:7003          0.0.0.0:*               LISTEN      20299/./redis-serve 
+	tcp        0      0 127.0.0.1:7004          0.0.0.0:*               LISTEN      20301/./redis-serve 
+	tcp        0      0 127.0.0.1:7005          0.0.0.0:*               LISTEN      20303/./redis-serve 
+	tcp        0      0 127.0.0.1:7006          0.0.0.0:*               LISTEN      20305/./redis-serve 
+	tcp        0      0 127.0.0.1:17001         0.0.0.0:*               LISTEN      20295/./redis-serve 
+	tcp        0      0 127.0.0.1:17002         0.0.0.0:*               LISTEN      20297/./redis-serve
+
+	[root@VM_0_11_centos redis-cluster]# cp /root/tools/redis-4.0.9/src/redis-trib.rb ./
+
+使用redis-trib.rb创建集群
+	[root@VM_0_11_centos redis-cluster]# ./redis-trib.rb create --replicas 1 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 127.0.0.1:7006
+	/usr/share/rubygems/rubygems/core_ext/kernel_require.rb:55:in `require': cannot load such file -- redis (LoadError)
+		from /usr/share/rubygems/rubygems/core_ext/kernel_require.rb:55:in `require'
+		from ./redis-trib.rb:25:in `<main>'
+解决：	
+	安装ruby环境以及ruby和redis的接口：
+	[root@VM_0_11_centos redis-cluster]# yum -y install ruby rubygems
+	[root@VM_0_11_centos redis-cluster]# gem install redis
+	Fetching: redis-4.0.1.gem (100%)
+	ERROR:  Error installing redis:
+	redis requires Ruby version >= 2.2.2.
+	
+安装rvm：https://rvm.io/
+	[root@VM_0_11_centos local]# gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+	[root@VM_0_11_centos local]# \curl -sSL https://get.rvm.io | bash -s stable
+	[root@VM_0_11_centos local]# source /etc/profile.d/rvm.sh
+	
+利用rvm安装ruby：
+	1、查看rvm库中已知的ruby版本
+		[root@VM_0_11_centos local]# rvm list known|grep "^\[ruby"
+		[ruby-]1.8.6[-p420]
+		[ruby-]1.8.7[-head] # security released on head
+		[ruby-]1.9.1[-p431]
+		[ruby-]1.9.2[-p330]
+		[ruby-]1.9.3[-p551]
+		[ruby-]2.0.0[-p648]
+		[ruby-]2.1[.10]
+		[ruby-]2.2[.7]
+		[ruby-]2.3[.4]
+		[ruby-]2.4[.1]
+	2、安装一个ruby版本
+		[root@VM_0_11_centos local]# rvm install 2.4.1
+	3、查询ruby版本：
+		[root@VM_0_11_centos local]# ruby --version
+		ruby 2.4.1p111 (2017-03-22 revision 58053) [x86_64-linux]
+		
+继续安装ruby和redis的接口：
+	[root@VM_0_11_centos redis-cluster]# gem install redis
+
+继续使用redis-trib.rb创建集群：
+	[root@VM_0_11_centos redis-cluster]# ./redis-trib.rb create --replicas 1 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 127.0.0.1:7006
+	>>> Creating cluster
+	>>> Performing hash slots allocation on 6 nodes...
+	
+至此redis的集群搭建完毕
+
+
+主节点与从节点的对应关系：
+	Using 3 masters:
+	127.0.0.1:7001
+	127.0.0.1:7002
+	127.0.0.1:7003
+	Adding replica 127.0.0.1:7005 to 127.0.0.1:7001
+	Adding replica 127.0.0.1:7006 to 127.0.0.1:7002
+	Adding replica 127.0.0.1:7004 to 127.0.0.1:7003
+
+哈希槽的分配：
+	M: d8ad305eb42f54f939aaa45094de36cf2bf85a83 127.0.0.1:7001
+	   slots:0-5460 (5461 slots) master
+	M: fa6c91c405a168ebc38742d0f4a9123bcc004711 127.0.0.1:7002
+	   slots:5461-10922 (5462 slots) master
+	M: 11eace5e658ad4e0b673c106cb1e42313973762f 127.0.0.1:7003
+	   slots:10923-16383 (5461 slots) master
+	
+现在使用redis-cli登录其中一个节点
+	[root@VM_0_11_centos redis1]# ./redis-cli -c -p 7001  # -c    Enable cluster mode (follow -ASK and -MOVED redirections).
+	127.0.0.1:7001> set name wadeson
+	-> Redirected to slot [5798] located at 127.0.0.1:7002      # 可以看见将key--name的值存储到了7002节点中
+	OK
+	现在去7002的从节点7006进行获取：
+	[root@VM_0_11_centos redis1]# ./redis-cli -c -p 7006
+	127.0.0.1:7006> get name
+	-> Redirected to slot [5798] located at 127.0.0.1:7002
+	"wadeson"
+
+
+	
+集群节点选举：
+现在模拟将7002节点挂掉：
+	[root@VM_0_11_centos redis1]# ps -ef|grep redis
+	root     20295     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7001 [cluster]
+	root     20297     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7002 [cluster]
+	root     20299     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7003 [cluster]
+	root     20301     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7004 [cluster]
+	root     20303     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7005 [cluster]
+	root     20305     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7006 [cluster]
+	root     27695 20037  0 16:40 pts/1    00:00:00 grep --color=auto redis
+	[root@VM_0_11_centos redis1]# kill 20297
+
+	[root@VM_0_11_centos redis-cluster]# ./redis-trib.rb check 127.0.0.1:7002
+	[ERR] Sorry, can't connect to node 127.0.0.1:7002
+
+	[root@VM_0_11_centos redis-cluster]# ./redis-trib.rb check 127.0.0.1:7005
+	>>> Performing Cluster Check (using node 127.0.0.1:7005)
+	S: f8b7bbc90ec4628ca38b1b56706cbfa3ad18a956 127.0.0.1:7005
+	   slots: (0 slots) slave
+	   replicates 11eace5e658ad4e0b673c106cb1e42313973762f
+	M: 11eace5e658ad4e0b673c106cb1e42313973762f 127.0.0.1:7003
+	   slots:10923-16383 (5461 slots) master
+	   1 additional replica(s)
+	S: e71dadf0943a3187fdb71e342e44eb4b5db77a45 127.0.0.1:7006
+	   slots: (0 slots) slave
+	   replicates d8ad305eb42f54f939aaa45094de36cf2bf85a83
+	M: c2c5b16d49dfce5b172dada422629485cdd531f4 127.0.0.1:7004
+	   slots:5461-10922 (5462 slots) master
+	   0 additional replica(s)
+	M: d8ad305eb42f54f939aaa45094de36cf2bf85a83 127.0.0.1:7001
+	   slots:0-5460 (5461 slots) master
+	   1 additional replica(s)
+
+可以看见现在master节点为7001、7003、7004
+	[root@VM_0_11_centos redis-cluster]# redis1/redis-cli -c -p 7004
+	127.0.0.1:7004> get name
+	"wadeson"
+
+现在我们将7002节点恢复，看是否会自动加入集群中以及充当的M还是S节点。
+	[root@VM_0_11_centos redis2]# ./redis-server redis.conf
+	[root@VM_0_11_centos redis2]# ps -ef|grep redis
+	root     20295     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7001 [cluster]
+	root     20299     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7003 [cluster]
+	root     20301     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7004 [cluster]
+	root     20303     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7005 [cluster]
+	root     20305     1  0 15:47 ?        00:00:01 ./redis-server 127.0.0.1:7006 [cluster]
+	root     28045     1  0 16:46 ?        00:00:00 ./redis-server 127.0.0.1:7002 [cluster]
+	root     28052 20037  0 16:46 pts/1    00:00:00 grep --color=auto redis
+
+	[root@VM_0_11_centos redis-cluster]# ./redis-trib.rb check 127.0.0.1:7002
+	S: fa6c91c405a168ebc38742d0f4a9123bcc004711 127.0.0.1:7002
+	   slots: (0 slots) slave
+   
+可以看见7002已经变为从节点了
