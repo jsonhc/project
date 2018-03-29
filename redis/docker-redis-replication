@@ -1,0 +1,185 @@
+1、拉取redis镜像
+	# docker pull redis
+
+2、docker run启动三个redis容器：
+	# docker run --name redis-6380 -p 6380:6379 -d redis
+	# docker run --name redis-6381 -p 6381:6379 -d redis
+	# docker run --name redis-6382 -p 6382:6379 -d redis
+
+	[root@VM_0_11_centos ~]# docker ps|grep redis
+	71b2ac18ea2f        redis                     "docker-entrypoint.s…"   3 seconds ago       Up 2 seconds        0.0.0.0:6382->6379/tcp   redis-6382
+	a2ca411792d5        redis                     "docker-entrypoint.s…"   13 seconds ago      Up 12 seconds       0.0.0.0:6381->6379/tcp   redis-6381
+	45ecb57159ad        redis                     "docker-entrypoint.s…"   35 seconds ago      Up 35 seconds       0.0.0.0:6380->6379/tcp   redis-6380
+
+3、查询该三个redis实例的容器ip：
+	# docker ps|grep redis-6380|awk '{print $1}'|xargs -i docker inspect {}|grep -i IPaddress|sed -n 2p|awk -F'"' '{print $4}'
+	172.18.0.3
+	# docker ps|grep redis-6381|awk '{print $1}'|xargs -i docker inspect {}|grep -i IPaddress|sed -n 2p|awk -F'"' '{print $4}'
+	172.18.0.4
+	# docker ps|grep redis-6382|awk '{print $1}'|xargs -i docker inspect {}|grep -i IPaddress|sed -n 2p|awk -F'"' '{print $4}'
+	172.18.0.5
+
+4、进入到该三个容器内部，查询当前redis角色是主还是从：
+	# docker exec -it `docker ps|grep redis-6380|awk '{print $1}'` /bin/bash
+	root@45ecb57159ad:/data# redis-cli 
+	127.0.0.1:6379> info replication
+	# Replication
+	role:master
+	connected_slaves:0
+	master_replid:7130d5ebeace825be187c1a6d4fd5eb20de17a6a
+	master_replid2:0000000000000000000000000000000000000000
+	master_repl_offset:0
+	second_repl_offset:-1
+	repl_backlog_active:0
+	repl_backlog_size:1048576
+	repl_backlog_first_byte_offset:0
+	repl_backlog_histlen:0
+
+	# docker exec -it `docker ps|grep redis-6381|awk '{print $1}'` /bin/bash
+	root@a2ca411792d5:/data# redis-cli 
+	127.0.0.1:6379> info replication
+	# Replication
+	role:master
+	connected_slaves:0
+	master_replid:472f80824e67afb25f499edd79aff415daa5c5fe
+	master_replid2:0000000000000000000000000000000000000000
+	master_repl_offset:0
+	second_repl_offset:-1
+	repl_backlog_active:0
+	repl_backlog_size:1048576
+	repl_backlog_first_byte_offset:0
+	repl_backlog_histlen:0
+
+	# docker exec -it `docker ps|grep redis-6382|awk '{print $1}'` /bin/bash
+	root@71b2ac18ea2f:/data# redis-cli 
+	127.0.0.1:6379> info replication
+	# Replication
+	role:master
+	connected_slaves:0
+	master_replid:c4712bd0cd57c1cc169c9d545a4229a226ffc02a
+	master_replid2:0000000000000000000000000000000000000000
+	master_repl_offset:0
+	second_repl_offset:-1
+	repl_backlog_active:0
+	repl_backlog_size:1048576
+	repl_backlog_first_byte_offset:0
+	repl_backlog_histlen:0
+
+可以看见三个redis实例都是master
+
+现在将redis-6380(172.18.0.3)作为主，redis-6381(172.18.0.4)、redis-6382(172.18.0.5)作为从，现在配置两个从：
+	# docker exec -it `docker ps|grep redis-6381|awk '{print $1}'` /bin/bash
+	root@a2ca411792d5:/data# redis-cli 
+	127.0.0.1:6379> SLAVEOF 172.18.0.3 6379
+	OK
+	127.0.0.1:6379> exit
+
+	# docker exec -it `docker ps|grep redis-6382|awk '{print $1}'` /bin/bash
+	root@71b2ac18ea2f:/data# redis-cli 
+	127.0.0.1:6379> SLAVEOF 172.18.0.3 6379
+	OK
+	127.0.0.1:6379> exit
+
+登录到主redis：
+	# docker exec -it `docker ps|grep redis-6380|awk '{print $1}'` /bin/bash
+	root@45ecb57159ad:/data# redis-cli 
+	127.0.0.1:6379> info replication
+	# Replication
+	role:master
+	connected_slaves:2
+	slave0:ip=172.18.0.4,port=6379,state=online,offset=98,lag=1
+	slave1:ip=172.18.0.5,port=6379,state=online,offset=98,lag=1
+	master_replid:04bf7d8b49545d8bb4ae866442f443b0616c3a4d
+	master_replid2:0000000000000000000000000000000000000000
+	master_repl_offset:98
+	second_repl_offset:-1
+	repl_backlog_active:1
+	repl_backlog_size:1048576
+	repl_backlog_first_byte_offset:1
+	repl_backlog_histlen:98
+
+配置sentinel哨兵模式：
+主redis配置：
+	# docker exec -it `docker ps|grep redis-6380|awk '{print $1}'` /bin/bash
+	root@45ecb57159ad:/# echo "sentinel monitor mymaster 172.18.0.3 6379 1" >> sentinel.conf
+	root@45ecb57159ad:/# redis-sentinel sentinel.conf       # redis-sentinel sentinel.conf &：这样开启就可以正常退出容器
+
+	# docker exec -it `docker ps|grep redis-6380|awk '{print $1}'` /bin/bash
+	root@45ecb57159ad:/data# ps -ef|grep redis
+	redis        1     0  0 06:56 ?        00:00:02 redis-server *:6379
+	root        36    29  0 08:19 pts/0    00:00:00 redis-sentinel *:26379 [sentinel]
+	root        45    40  0 08:20 pts/1    00:00:00 grep redis
+
+从redis配置：
+slave1：
+	# docker exec -it `docker ps|grep redis-6381|awk '{print $1}'` /bin/bash
+	root@a2ca411792d5:/# echo "sentinel monitor mymaster 172.18.0.3 6379 1" >> sentinel.conf
+	root@a2ca411792d5:/# redis-sentinel sentinel.conf
+
+slave2：
+	# docker exec -it `docker ps|grep redis-6382|awk '{print $1}'` /bin/bash
+	root@71b2ac18ea2f:/# echo "sentinel monitor mymaster 172.18.0.3 6379 1" >> sentinel.conf
+	root@71b2ac18ea2f:/# redis-sentinel sentinel.conf
+
+然后整个的输出：
+	27:X 16 Mar 08:29:51.960 # Sentinel ID is 9da5683a27d75cc2a31315f626b1fb54d336bfe7
+	27:X 16 Mar 08:29:51.960 # +monitor master mymaster 172.18.0.3 6379 quorum 1
+	27:X 16 Mar 08:29:51.961 * +slave slave 172.18.0.4:6379 172.18.0.4 6379 @ mymaster 172.18.0.3 6379
+	27:X 16 Mar 08:29:51.972 * +slave slave 172.18.0.5:6379 172.18.0.5 6379 @ mymaster 172.18.0.3 6379
+	27:X 16 Mar 08:29:52.178 * +sentinel sentinel c192d253f088e4dd0d45e05d950765bb80660bdd 172.18.0.3 26379 @ mymaster 172.18.0.3 6379
+	27:X 16 Mar 08:29:52.601 * +sentinel sentinel 066d74cbbf8b0192f3fb660abfd40409135b1560 172.18.0.4 26379 @ mymaster 172.18.0.3 6379
+
+现在将master进行停止：
+	# docker stop `docker ps|grep redis-6380|awk '{print $1}'` 
+	45ecb57159ad
+
+查询两个从：
+	# docker exec -it `docker ps|grep redis-6381|awk '{print $1}'` /bin/bash
+	root@a2ca411792d5:/data# redis-cli 
+	127.0.0.1:6379> info replication
+	# Replication
+	role:slave
+	master_host:172.18.0.3
+	master_port:6379
+	master_link_status:down
+	master_last_io_seconds_ago:-1
+	master_sync_in_progress:0
+	slave_repl_offset:438383
+	master_link_down_since_seconds:23
+	slave_priority:100
+	slave_read_only:1
+	connected_slaves:0
+	master_replid:04bf7d8b49545d8bb4ae866442f443b0616c3a4d
+	master_replid2:0000000000000000000000000000000000000000
+	master_repl_offset:438383
+	second_repl_offset:-1
+	repl_backlog_active:1
+	repl_backlog_size:1048576
+	repl_backlog_first_byte_offset:1
+	repl_backlog_histlen:438383
+
+	# docker exec -it `docker ps|grep redis-6382|awk '{print $1}'` /bin/bash
+	root@71b2ac18ea2f:/data# redis-cli 
+	127.0.0.1:6379> info replication
+	# Replication
+	role:master
+	connected_slaves:1
+	slave0:ip=172.18.0.4,port=6379,state=online,offset=438946,lag=0
+	master_replid:a74f02e4d5dd0032e7d8f4c7510a72d9f8b322f2
+	master_replid2:04bf7d8b49545d8bb4ae866442f443b0616c3a4d
+	master_repl_offset:439216
+	second_repl_offset:438384
+	repl_backlog_active:1
+	repl_backlog_size:1048576
+	repl_backlog_first_byte_offset:43
+	repl_backlog_histlen:439174
+
+然后将master上线：
+	# docker start `docker ps -a|grep redis-6380|awk '{print $1}'`
+	45ecb57159ad
+由于新上线的master，sentinel已经由于容器而停止了，所以没有sentinel模式
+	root@45ecb57159ad:/data# ps -ef|grep redis
+	redis        1     0  0 09:06 ?        00:00:00 redis-server *:6379
+	root        19    13  0 09:07 pts/0    00:00:00 grep redis
+	
+
