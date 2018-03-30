@@ -173,6 +173,32 @@ CMD [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
 	
 可以看见节点还是从角色，数据也还在
 
+现在模拟主节点宕机：
+	[root@VM_0_11_centos docker_demo]# docker-compose -f docker-compose.yml stop redis
+	Stopping dockerdemo_redis_1 ... done
+	
+然后将从节点从slave提升为master：
+	root@2006e3614f1c:/data# redis-cli 
+	127.0.0.1:6379> info replication
+	# Replication
+	role:slave
+	master_host:redis-6380
+
+	127.0.0.1:6379> SLAVEOF NO ONE      # 执行该命令将slave提升为master
+	OK
+	(3.57s)
+	127.0.0.1:6379> info replication
+	# Replication
+	role:master
+	connected_slaves:0
+
+最后将宕机的主节点start：
+	[root@VM_0_11_centos docker_demo]# docker-compose -f docker-compose.yml start redis
+	Starting redis ... done
+
+然后将该上线的节点：将主库重新启动后，执行SLAVEOF命令，将其设置为其他库的从库，这时数据就能更新回来
+
+
 
 
 配置sentinel哨兵模式：
