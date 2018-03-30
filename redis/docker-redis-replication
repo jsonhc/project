@@ -18,6 +18,10 @@
 	172.18.0.4
 	# docker ps|grep redis-6382|awk '{print $1}'|xargs -i docker inspect {}|grep -i IPaddress|sed -n 2p|awk -F'"' '{print $4}'
 	172.18.0.5
+	# for i in `docker ps|grep redis|awk '{print $1}'`;do docker inspect $i|grep -i IPaddress|sed -n 2p|awk -F'"' '{print $4}';done
+	172.18.0.4
+	172.18.0.3
+	172.18.0.2
 
 4、进入到该三个容器内部，查询当前redis角色是主还是从：
 	# docker exec -it `docker ps|grep redis-6380|awk '{print $1}'` /bin/bash
@@ -97,6 +101,74 @@
 	repl_backlog_size:1048576
 	repl_backlog_first_byte_offset:1
 	repl_backlog_histlen:98
+	
+	主进行操作：
+		127.0.0.1:6379> set name wadeson
+		OK
+		
+	从进行获取：
+		127.0.0.1:6379> get name
+		"wadeson"
+	将其中一个容器关闭后，再启动后，主从关系已经消失，但是数据还在（在redis-cli终端配置的主从，如果将SLAVEOF 172.18.0.3 6379写进到配置文件是否是一样的结果？）
+
+现在利用配置文件进行构建镜像：
+1、提供配置文件：
+[root@VM_0_11_centos docker_demo]# grep "^slaveof" redis-6381.conf 
+slaveof redis-6380 6379
+	
+2、提供Dockerfile：  构建从节点
+[root@VM_0_11_centos docker_demo]# cat Dockerfile 
+FROM redis
+
+MAINTAINER json_hc@163.com
+
+COPY redis-6381.conf /usr/local/etc/redis/redis.conf    # 官方默认的路径
+
+CMD [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+
+3、构建镜像：
+	[root@VM_0_11_centos docker_demo]# docker build redis-6381 .
+	
+4、编写docker-compose.yml：
+	[root@VM_0_11_centos docker_demo]# cat docker-compose.yml 
+	version: '3'
+	services:
+	  redis:
+		image: redis
+		ports:
+		  - "6380:6379"
+	  redis-6381:
+		image: redis-6381
+		ports:
+		  - "6381:6379"
+		links:
+		  - redis:redis-6380        # 由于6381的节点的配置文件是redis-6380，所以需要进行映射，将主节点redis服务映射为redis-6380（映射是外映射为内，redis是外面的服务名称，映射为容器内的redis-6380）
+	  
+5、docker-compose开启：
+	[root@VM_0_11_centos docker_demo]# docker-compose -f docker-compose.yml up
+	
+测试主从：
+	127.0.0.1:6379> set name wadeson
+	OK
+	127.0.0.1:6379> get name
+	"wadeson"
+	
+现在将从节点重启：
+	[root@VM_0_11_centos ~]# docker stop `docker ps -a|grep 6381|awk '{print $1}'`
+	72ea67760ee0
+	[root@VM_0_11_centos ~]# docker start `docker ps -a|grep 6381|awk '{print $1}'`
+	72ea67760ee0
+
+查询从节点是否还有数据：
+	127.0.0.1:6379> info replication
+	# Replication
+	role:slave
+	127.0.0.1:6379> get name
+	"wadeson"
+	
+可以看见节点还是从角色，数据也还在
+
+
 
 配置sentinel哨兵模式：
 主redis配置：
@@ -182,4 +254,3 @@ slave2：
 	redis        1     0  0 09:06 ?        00:00:00 redis-server *:6379
 	root        19    13  0 09:07 pts/0    00:00:00 grep redis
 	
-
