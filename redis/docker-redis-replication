@@ -146,6 +146,11 @@ CMD [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
 	  
 5、docker-compose开启：
 	[root@VM_0_11_centos docker_demo]# docker-compose -f docker-compose.yml up
+	[root@VM_0_11_centos docker_demo]# docker-compose ps
+		 Name                        Command               State           Ports         
+	-----------------------------------------------------------------------------------------
+	dockerdemo_redis-6381_1   docker-entrypoint.sh redis ...   Up      0.0.0.0:6381->6379/tcp
+	dockerdemo_redis_1        docker-entrypoint.sh redis ...   Up      0.0.0.0:6380->6379/tcp
 	
 测试主从：
 	127.0.0.1:6379> set name wadeson
