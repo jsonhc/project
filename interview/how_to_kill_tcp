@@ -1,0 +1,68 @@
+如何查询服务器的tcp连接？
+[root@aliyun ~]# netstat -ant
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State      
+tcp        0      0 172.18.0.1:53           0.0.0.0:*               LISTEN     
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN     
+tcp        0      0 127.0.0.1:6782          0.0.0.0:*               LISTEN     
+tcp        0      0 0.0.0.0:6783            0.0.0.0:*               LISTEN     
+tcp        0      0 127.0.0.1:6784          0.0.0.0:*               LISTEN     
+tcp        0      0 127.0.0.1:6784          127.0.0.1:45788         ESTABLISHED
+tcp        0      0 127.0.0.1:45788         127.0.0.1:6784          ESTABLISHED
+tcp      401      0 172.17.145.50:32840     140.205.140.205:80      CLOSE_WAIT 
+tcp        0      0 172.17.145.50:37638     140.205.140.205:80      ESTABLISHED
+tcp        0      0 172.17.145.50:22        113.57.250.12:4251      ESTABLISHED
+tcp        0      0 172.17.145.50:22        101.230.209.66:39844    ESTABLISHED
+tcp6       0      0 :::3306                 :::*                    LISTEN     
+tcp6       0      0 :::80                   :::*                    LISTEN     
+tcp6       0      0 :::8080                 :::*                    LISTEN     
+tcp6       0      0 :::8081                 :::*                    LISTEN     
+tcp6       0      0 :::10020                :::*                    LISTEN
+
+[root@aliyun ~]# who
+root     tty1         2018-01-23 19:29
+root     pts/0        2018-04-03 10:07 (101.230.209.66)
+root     pts/1        2018-04-03 10:37 (113.57.250.12)
+
+现在将tcp的一个连接：
+tcp        0      0 172.17.145.50:22        113.57.250.12:4251      ESTABLISHED
+
+将上面的一个连接进行kill掉：
+1、首先通过lsof查询本地也就是服务器的22端口：目的是获得pid信息
+[root@aliyun ~]# lsof -i :22
+COMMAND   PID USER   FD   TYPE  DEVICE SIZE/OFF NODE NAME
+sshd     1919 root    3u  IPv4   14671      0t0  TCP *:ssh (LISTEN)
+sshd    18793 root    3u  IPv4 6679247      0t0  TCP aliyun:ssh->101.230.209.66:39844 (ESTABLISHED)
+sshd    18873 root    3u  IPv4 6680292      0t0  TCP aliyun:ssh->113.57.250.12:4251 (ESTABLISHED)
+
+2、将获得到的pid通过kill进行杀掉：
+[root@aliyun ~]# kill 18873
+
+执行完成：
+[root@aliyun ~]# lsof -i :22
+COMMAND   PID USER   FD   TYPE  DEVICE SIZE/OFF NODE NAME
+sshd     1919 root    3u  IPv4   14671      0t0  TCP *:ssh (LISTEN)
+sshd    18793 root    3u  IPv4 6679247      0t0  TCP aliyun:ssh->101.230.209.66:39844 (ESTABLISHED)
+
+下面一种方法通过tcpkill命令(通过yum安装的dsniff就可以有tcpkill命令)：
+依然通过22端口为例：
+[root@aliyun ~]# netstat -ant|grep 22
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN     
+tcp        0      0 172.17.145.50:22        113.57.250.12:4269      ESTABLISHED
+tcp        0      0 172.17.145.50:22        101.230.209.66:39844    ESTABLISHED
+
+将ip为113.57.250.12的客户端进行剔除：
+[root@aliyun ~]# tcpkill host 113.57.250.12 and port 4269
+tcpkill: listening on eth0 [host 113.57.250.12 and port 4269]
+113.57.250.12:4269 > 172.17.145.50:22: R 4007663990:4007663990(0) win 0
+113.57.250.12:4269 > 172.17.145.50:22: R 4007666038:4007666038(0) win 0
+113.57.250.12:4269 > 172.17.145.50:22: R 4007670134:4007670134(0) win 0
+172.17.145.50:22 > 113.57.250.12:4269: R 2550948602:2550948602(0) win 0
+172.17.145.50:22 > 113.57.250.12:4269: R 2550948858:2550948858(0) win 0
+172.17.145.50:22 > 113.57.250.12:4269: R 2550949370:2550949370(0) win 0
+
+结果如下：
+[root@aliyun ~]# netstat -ant|grep 22
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN     
+tcp        0      0 172.17.145.50:22        101.230.209.66:14073    ESTABLISHED
+
