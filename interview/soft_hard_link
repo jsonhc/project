@@ -1,0 +1,41 @@
+[root@aliyun ~]# ll /root/test.txt 
+-rw-r--r-- 2 root root 51 Mar 29 10:01 /root/test.txt
+
+软链接：ln -s src_file dest_file
+1.软链接，以路径的形式存在。类似于Windows操作系统中的快捷方式
+2.软链接可以 跨文件系统 ，硬链接不可以
+3.软链接可以对一个不存在的文件名进行链接
+4.软链接可以对目录进行链接
+[root@aliyun ~]# ln -s test.txt /tmp/test1.txt
+[root@aliyun ~]# ll /tmp/test1.txt 
+lrwxrwxrwx 1 root root 8 Apr  3 11:11 /tmp/test1.txt -> test.txt
+但是在/tmp目录下面没有test.txt文件(如果源文件出现红色跳闪，则表示源文件该路径不存在)
+[root@aliyun ~]# cat /tmp/test1.txt 
+cat: /tmp/test1.txt: No such file or directory
+
+[root@aliyun ~]# ln -s /root/test.txt /tmp/test2.txt
+lrwxrwxrwx 1 root root 14 Apr  3 11:12 /tmp/test2.txt -> /root/test.txt
+
+对目录进行软连接：
+[root@aliyun ~]# mkdir test
+[root@aliyun ~]# ln -s /root/test /tmp/test_tmp
+[root@aliyun ~]# ll /tmp/test_tmp/
+total 0
+
+
+硬链接:ln src_file dest_file
+1.硬链接，以文件副本的形式存在。但不占用实际空间。
+2.不允许给目录创建硬链接
+3.硬链接只有在同一个文件系统中才能创建
+[root@aliyun ~]# ln test.txt /tmp/test_ying.txt
+[root@aliyun ~]# ll /tmp/test_ying.txt 
+-rw-r--r-- 2 root root 51 Mar 29 10:01 /tmp/test_ying.txt
+[root@aliyun ~]# cat /tmp/test_ying.txt 
+aaaba
+cccga
+99999
+I'm singing while you're dancing
+
+对目录不能进行硬链接：
+[root@aliyun ~]# ln test /tmp/test_ying_tmp
+ln: ‘test’: hard link not allowed for directory
