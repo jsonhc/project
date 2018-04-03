@@ -1,0 +1,23 @@
+split:用来切割文件
+
+按照行数来切割文件：-l
+# split -l 1000 src_file_name dest_file_name     # 按照行数为1000行来切割文件
+
+当源文件在持续写入时，进行split切割也是可以的：
+example：
+# while true;do echo "XXXXXX" >> src_file;sleep 1;done
+# split -l 1000 src_file_name dest_file_name
+
+按照每个输出的文件size进行切割：
+创建一个10g的大文件：
+    # dd if=/dev/zero of=test1 bs=1M count=10000
+
+将创建的10g大文件进行每个文件1g进行切割：
+    # split -b 1024m test1 test1.txt
+
+将大文件进行压缩并split切割：
+[root@aliyun ~]# ls -lh test.txt
+-rw-r--r-- 1 root root 4.9G Apr  3 16:23 test.txt
+
+# tar cvf - test.txt |split -b 10m - test.txt.tar.gz   将文件test.txt进行压缩，并按照10m的大小切割
+    那两个"-"不要漏了，那是tar的ouput和split的input的参数
