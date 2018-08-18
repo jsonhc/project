@@ -73,3 +73,10 @@ kathy	4.00	10
 [root@aliyun awk_demo]# cat emp.txt |awk '1'
 [root@aliyun awk_demo]# cat emp.txt |awk '{print $0}'
 [root@aliyun awk_demo]# cat emp.txt |awk '{print}'
+
+# paste的用法
+[root@aliyun awk_demo]# awk '{print $1}' emp.txt | paste -s   #该指令会将所有换行删掉，拼成一行 
+Beth	Dan	kathy	Mark	Mary	Susie
+
+[root@aliyun awk_demo]# awk '{print $1}' emp.txt | paste -s -d:
+Beth:Dan:kathy:Mark:Mary:Susie
