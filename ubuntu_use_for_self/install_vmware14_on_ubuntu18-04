@@ -1,0 +1,11 @@
+sudo vmware-installer -u vmware-workstation   # remove vmware
+
+install:
+sudo apt-get install axel
+axel -n 10 https://my.vmware.com/group/vmware/details?downloadGroup=WKST-1400-LX&productId=686&download=true&fileId=8fc9d58ddd29a2c220df8318556405fa&secureParam=347263d7dfcba19902876096515b5e58&uuId=9be6fd64-223f-45ed-9827-912ae351d8b3&downloadType=
+chmod +x VMware-Workstation-Full-15.0.0-10134415.x86_64.bundle
+sudo ./VMware-Workstation-Full-15.0.0-10134415.x86_64.bundle
+sudo vmware-modconfig --console --install-all
+sudo modprobe vmmon
+sudo /etc/init.d/vmware restart   # 当服务都是ok的时候就可以成功了
+
