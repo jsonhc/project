@@ -147,3 +147,19 @@ location ~ .*\.(js|css)?$
     root /usr/local/webapps;
     expires 1h;
 }
+
+
+# nginx和haproxy的区别:
+Haproxy特点
+  支持TCP与Http协议，工作在网络4层和7层
+  支持Session共享、Cookies引导
+  支持通过URL健康检测
+  支持8种负载均衡策略:roundrobin|static-rr|leastconn|source|uri|url_param|hdr(name)
+  支持心跳检测
+
+Nginx特点
+  支持Http协议，工作在网络7层 
+  支持通过端口健康检测 
+  支持强大的正则匹配规则 
+  支持WebSocket协议 
+  支持Http Cache
