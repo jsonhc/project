@@ -76,3 +76,74 @@ limit_conn  one  100表示最大并发连接数100
 limit_conn perserver 1000表示该服务提供的总连接数不得超过1000,超过请求的会被拒绝
 
 
+Nginx 从1.9.0开始发布ngx_stream_core_module模块，该模块支持tcp代理及负载均衡。
+ngx_stream_core_module这个模块并不会默认启用，需要在编译时通过指定--with-stream参数来激活这个模块。
+$ yum -y install proc* openssl* pcre*
+$ wget http://nginx.org/download/nginx-1.9.4.tar.gz
+$ tar zxvf nginx-1.9.4.tar.gz
+$ cd nginx-1.9.4
+$ ./configure  --prefix=/etc/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --pid-path=/var/run/nginx.pid --lock-path=/var/run/nginx.lock --http-client-body-temp-path=/var/cache/nginx/client_temp --http-proxy-temp-path=/var/cache/nginx/proxy_temp --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp --http-scgi-temp-path=/var/cache/nginx/scgi_temp --user=nginx --group=nginx --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_random_index_module --with-http_secure_link_module --with-http_stub_status_module --with-http_auth_request_module --with-threads --with-stream --with-stream_ssl_module --with-mail --with-mail_ssl_module --with-file-aio --with-ipv6 --with-http_spdy_module 
+$ make
+$ make install
+
+实例一：测试MYSQL负载均衡
+stream模块必需在nginx.conf中配置
+$ mv nginx.conf{,.bak}
+$ vim  /etc/nginx/nginx.conf
+worker_processes auto;
+events {
+    worker_connections  1024;
+}
+error_log /var/log/nginx_error.log info;
+
+stream {
+    upstream mysqld {
+        hash $remote_addr consistent;
+        server 192.168.1.42:3306 weight=5 max_fails=1 fail_timeout=10s;
+        server 192.168.1.43:3306 weight=5 max_fails=1 fail_timeout=10s;
+    }
+
+    server {
+        listen 3306;
+        proxy_connect_timeout 1s;
+        proxy_timeout 3s;
+        proxy_pass mysqld;
+    }
+
+}
+
+#静态分离:
+location / {
+    proxy_next_upstream http_502 http_504 error timeout invalid_header;
+    proxy_pass http://mycluster;
+    # 真实的客户端IP
+    proxy_set_header   X-Real-IP        $remote_addr; 
+    # 请求头中Host信息
+    proxy_set_header   Host             $host; 
+    # 代理路由信息，此处取IP有安全隐患
+    proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+    # 真实的用户访问协议
+    proxy_set_header   X-Forwarded-Proto $scheme;
+}
+
+#静态文件交给nginx处理
+location ~ .*\.(htm|html|gif|jpg|jpeg|png|bmp|swf|ioc|rar|zip|txt|flv|mid|doc|ppt|pdf|xls|mp3|wma)$
+{
+    root /usr/local/webapps;
+    expires 30d;
+}
+#静态文件交给nginx处理
+location ~ .*\.(js|css)?$
+{
+    root /usr/local/webapps;
+    expires 1h;
+}
+
+root /usr/local/webapps; 这段代码的意思是指定Nginx访问的目录，即静态资源所在的目录。
+expires 30d; 指定这些资源文件在客户端浏览器的缓存时间。30d指的是30天，1h指的是1小时。
+
+location ~ .*\.(js|css)?$
+{
+    root /usr/local/webapps;
+    expires 1h;
+}
