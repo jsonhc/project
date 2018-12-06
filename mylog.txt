@@ -1,3 +1,0 @@
-Username for 'https://github.com': jsonhc
-jsonhc
-Password for 'https://jsonhc@github.com': HHq123456*
