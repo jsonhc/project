@@ -15,7 +15,7 @@ Transaction check error:
 Server=127.0.0.1
 Hostname=aliyun
 
-# systemctlstatus zabbix-agent
+# systemctl start zabbix-agent
 # systemctl status zabbix-agent
 
 zabbix-agent服务监听在10050端口上
