@@ -12,8 +12,9 @@ Transaction check error:
 # yum install zabbix zabbix-agent
 
 # config /etc/zabbix/zabbix_agentd.conf
-Server=127.0.0.1
-Hostname=aliyun
+sed -i 's/Server=127.0.0.1/Server=172.16.23.131/g' /etc/zabbix/zabbix_agentd.conf
+sed -i 's/ServerActive=127.0.0.1/ServerActive=172.16.23.131/g' /etc/zabbix/zabbix_agentd.conf
+
 
 # systemctl start zabbix-agent
 # systemctl status zabbix-agent
