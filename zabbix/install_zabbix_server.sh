@@ -34,15 +34,16 @@ zcat /usr/share/doc/zabbix-server-mysql*/create.sql.gz | mysql -uroot -h127.0.0.
 zcat /usr/share/doc/zabbix-proxy-mysql*/schema.sql.gz | mysql -uroot -h127.0.0.1 -p zabbixdb
 
 # config /etc/zabbix/zabbix_server.conf for zabbixdb
-DBHost=127.0.0.1
-DBName=zabbixdb
-DBUser=zabbix
-DBPassword=password
+sed -i 's/# DBHost=localhost/DBHost=172.16.23.131/g' /etc/zabbix/zabbix_server.conf
+sed -i 's/DBName=zabbix/DBName=zabbixdb/g' /etc/zabbix/zabbix_server.conf
+sed -i 's/# DBPassword=/DBPassword=redhat/g' /etc/zabbix/zabbix_server.conf
 
 systemctl start zabbix-server
+查看日志:
+tail -f /var/log/zabbix/zabbix_server.log
 
 # config zabbix 
-http://39.106.219.238/zabbix/
+http://172.16.23.131/zabbix/
 
 # zabbix user and zabbix password
 Username:  admin
