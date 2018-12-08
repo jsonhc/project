@@ -1,7 +1,7 @@
 # 查看系统模板下面的监控项
 ## 搜索Template OS Linux，找到item，然后找到system.swap.size[,free]这个监控项
-手动获取这个监控项的值：
-[root@aliyun ~]# zabbix_get -s 39.106.219.238 -p 10050 -k "system.swap.size[,free]"
+### 手动获取这个监控项的值：
+### [root@aliyun ~]# zabbix_get -s 39.106.219.238 -p 10050 -k "system.swap.size[,free]"
 0
 
 ##自定义创建item
