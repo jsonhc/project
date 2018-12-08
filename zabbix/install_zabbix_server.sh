@@ -17,7 +17,13 @@ sed -i 's/# php_value date.timezone Europe\/Riga/php_value date.timezone Asia\/S
 
 systemctl restart httpd
 
-mysql -uroot -p -h127.0.0.1
+# 进入到容器进行授权
+# docker exec -it mysql5.7 bash
+root@5aa0a0895387:/# mysql -hlocalhost -uroot -predhat
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+mysql> flush privileges;
+
+mysql -uroot -p -h127.0.0.1    # yum install -y mariadb
 mysql> CREATE DATABASE zabbixdb CHARACTER SET UTF8;
 mysql> GRANT ALL PRIVILEGES on zabbixdb.* to zabbix@localhost IDENTIFIED BY 'password';
 mysql> GRANT ALL PRIVILEGES ON zabbixdb.* TO 'zabbix'@'%' IDENTIFIED BY 'redhat';
