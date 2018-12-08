@@ -30,8 +30,8 @@ mysql> GRANT ALL PRIVILEGES ON zabbixdb.* TO 'zabbix'@'%' IDENTIFIED BY 'redhat'
 mysql> FLUSH PRIVILEGES;
 mysql> quit
 
-zcat /usr/share/doc/zabbix-server-mysql*/create.sql.gz | mysql -uroot -p zabbixdb
-zcat /usr/share/doc/zabbix-proxy-mysql*/schema.sql.gz | mysql -uroot -p zabbixdb
+zcat /usr/share/doc/zabbix-server-mysql*/create.sql.gz | mysql -uroot -h127.0.0.1 -p zabbixdb
+zcat /usr/share/doc/zabbix-proxy-mysql*/schema.sql.gz | mysql -uroot -h127.0.0.1 -p zabbixdb
 
 # config /etc/zabbix/zabbix_server.conf for zabbixdb
 DBHost=127.0.0.1
