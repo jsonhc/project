@@ -13,7 +13,7 @@ rpm -Uvh http://repo.zabbix.com/zabbix/3.4/rhel/7/x86_64/zabbix-release-3.4-2.el
 yum install zabbix-server-mysql zabbix-web-mysql zabbix-proxy-mysql
 
 # config /etc/httpd/conf.d/zabbix.conf for date.timezone
-php_value date.timezone Asia/Kolkata
+sed -i 's/# php_value date.timezone Europe\/Riga/php_value date.timezone Asia\/Shanghai/g' /etc/httpd/conf.d/zabbix.conf
 
 systemctl restart httpd
 
