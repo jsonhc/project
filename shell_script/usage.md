@@ -18,6 +18,8 @@
 ### echo "arr includes " ${arr[@]}
 ### echo "arr includes " ${arr[*]}    
 ### #${arr[@]}与${arr[*]}同等
+### echo "the length of arr is " ${#arr[*]}
+### echo "the length of arr is " ${#arr[@]}
 ### 
 ### for i in ${arr[@]};
 ### do
@@ -26,6 +28,8 @@
 ### sh arr.sh
 ### arr includes  a, b, c
 ### arr includes  a, b, c
+### the length of arr is  3
+### the length of arr is  3
 ### a,
 ### b,
 ### c,
