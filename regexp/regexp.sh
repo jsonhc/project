@@ -66,4 +66,4 @@ cbc                  # 引用\w这个匹配到的分组
 Iraq fighting
 
 [root@aliyun grep]# cat access.log |grep -Po '.*\d{2}(?!\s)GET'
-12/May/2018:12:19:45GET
+12/May/2018:12:19:45GET        # (?!\s)：表示不是\s，也就是代表不是空白字符
