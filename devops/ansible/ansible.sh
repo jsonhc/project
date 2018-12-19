@@ -20,6 +20,14 @@ yum install ansible -y
 # shell模块执行命令
 # ansible nodes -m shell -a "ls -l /root/init_centos7.sh"
 
+# get_url代替curl命令
+# ansible nodes -m get_url -a "url=http://172.16.23.132/index.html dest=/tmp"
+# ansible nodes -m get_url -a "url=http://172.16.23.132/index.html dest=/tmp"|grep status_code    直接获取返回状态码
+
+# 获取ip信息
+# # ansible nodes -m shell -a "ip a|grep ens33|grep -Po '(?<=inet ).*(?=\/)'"
+
+
 # 查看ansible上节点系统变量
 [root@master vars]# ansible nodes -m setup -a "filter=ansible_all_ipv4_addresses"
 172.16.23.129 | SUCCESS => {
@@ -123,3 +131,12 @@ node1
 172.16.23.129 | CHANGED | rc=0 >>
 node1
 
+[root@master ~]# ansible nodes -m shell -a "hostname;ip a|grep ens33|grep -Po '(?<=inet ).*(?=\/)'"
+172.16.23.129 | CHANGED | rc=0 >>
+node1
+172.16.23.129
+172.16.23.132
+
+172.16.23.130 | CHANGED | rc=0 >>
+node2
+172.16.23.130
