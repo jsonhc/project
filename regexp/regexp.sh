@@ -59,3 +59,11 @@ cbc                  # 引用\w这个匹配到的分组
 
 [root@aliyun grep]# cat access.log |grep -Po "12\/May\/2018(:)\d+\1"
 12/May/2018:12:              # 将(:)冒号作为分组，\1引用前面定义得分组
+
+[root@aliyun grep]# cat access.log 
+12/May/2018:12:19:45 GET
+12/May/2018:12:19:45GET
+Iraq fighting
+
+[root@aliyun grep]# cat access.log |grep -Po '.*\d{2}(?!\s)GET'
+12/May/2018:12:19:45GET
