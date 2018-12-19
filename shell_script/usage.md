@@ -11,3 +11,20 @@
 ###     exit 1
 ### fi
 ### 
+### [root@aliyun grep]# cat arr.sh
+### #!/bin/bash
+### 
+### arr=("a", "b", "c")
+### echo "arr includes " ${arr[@]}
+### echo "arr includes " ${arr[*]}
+### 
+### for i in ${arr[@]};
+### do
+###     echo $i
+### done
+### sh arr.sh
+### arr includes  a, b, c
+### arr includes  a, b, c
+### a,
+### b,
+### c,
