@@ -16,7 +16,7 @@
 ### 
 ### arr=("a", "b", "c")
 ### echo "arr includes " ${arr[@]}
-### echo "arr includes " ${arr[*]}
+### echo "arr includes " ${arr[*]}    ${arr[@]}与${arr[*]}同等
 ### 
 ### for i in ${arr[@]};
 ### do
